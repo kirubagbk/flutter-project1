@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "553618993072",
+    "project_id": "dummy-8314e",
+    "storage_bucket": "dummy-8314e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:553618993072:android:c469ad359a495b9edbf075",
+        "android_client_info": {
+          "package_name": "com.example.task_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARGxVp72gFidW_bQ8VdnprCxX-6I2-sb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

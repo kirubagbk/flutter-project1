@@ -1,0 +1,207 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'dart:typed_data';
+import 'dart:io';
+
+class AllUsers extends StatefulWidget {
+  const AllUsers({Key? key}) : super(key: key);
+
+  @override
+  _AllUsersState createState() => _AllUsersState();
+}
+
+class _AllUsersState extends State<AllUsers> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          actions: [
+            IconButton(
+              onPressed: () {
+                showSearch(context: context, delegate: CustomSearchDelegate());
+              },
+              icon: const Icon(Icons.search),
+            ),
+            IconButton(
+              onPressed: () {
+                generatePDF();
+              },
+              icon: const Icon(Icons.picture_as_pdf),
+            )
+          ],
+          title: const Text('data screen'),
+        ),
+        body: const Column(
+          children: [
+            Expanded(
+              child: MyTable(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> generatePDF() async {
+    final pdf = pw.Document();
+
+    // Add a title to the PDF
+    pdf.addPage(
+      pw.Page(
+        build: (context) {
+          return pw.Center(
+            child: pw.Text('User Data Table', style: pw.TextStyle(fontSize: 20)),
+          );
+        },
+      ),
+    );
+
+    // Fetch data from Firestore
+    var snapshot = await FirebaseFirestore.instance.collection('users').get();
+
+    // Add the table to the PDF
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+          return [
+            pw.Table.fromTextArray(
+              headerAlignment: pw.Alignment.centerLeft,
+              cellAlignment: pw.Alignment.centerLeft,
+              headerHeight: 30,
+              cellHeight: 30,
+              headerDecoration: pw.BoxDecoration(
+                borderRadius: 2,
+                color: PdfColors.grey200,
+              ),
+              cellStyle: pw.TextStyle(
+                fontSize: 10,
+              ),
+              headers: ['First Name', 'Last Name', 'Email', 'Mobile Number', 'Address'],
+              data: MyTableData.getData(snapshot),
+            ),
+          ];
+        },
+      ),
+    );
+
+    // Save the PDF to a file
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/example.pdf');
+    await file.writeAsBytes(await pdf.save());
+  }
+}
+
+class MyTable extends StatefulWidget {
+  @override
+  State<MyTable> createState() => _MyTableState();
+}
+
+class _MyTableState extends State<MyTable> {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasData) {
+          List<TableRow> rows = [
+            const TableRow(children: [
+              TableCell(child: Center(child: Text('First Name', style: TextStyle(fontWeight: FontWeight.bold)))),
+              TableCell(child: Center(child: Text('Last Name', style: TextStyle(fontWeight: FontWeight.bold)))),
+              TableCell(child: Center(child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold)))),
+              TableCell(child: Center(child: Text('Mobile Number', style: TextStyle(fontWeight: FontWeight.bold)))),
+              TableCell(child: Center(child: Text('Address', style: TextStyle(fontWeight: FontWeight.bold))),),
+            ],
+            ),
+          ];
+
+          for (var doc in snapshot.data!.docs) {
+            rows.add(
+              TableRow(children: [
+                TableCell(child: Center(child: Text(doc['firstName'].toString()))),
+                TableCell(child: Center(child: Text(doc['lastName'].toString()))),
+                TableCell(child: Center(child: Text(doc['email'].toString()))),
+                TableCell(child: Center(child: Text(doc['mobileNumber'].toString()))),
+                TableCell(child: Center(child: Text(doc['address'].toString()))),
+              ],
+              ),
+            );
+          }
+
+          return Table(
+            border: TableBorder.all(),
+            columnWidths: const <int, TableColumnWidth>{
+              0: FixedColumnWidth(75.0),
+              1: FixedColumnWidth(75.0),
+              2: FixedColumnWidth(120.0),
+              3: FixedColumnWidth(85.0),
+              4: FixedColumnWidth(60.0),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: rows,
+          );
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
+  }
+}
+
+class MyTableData {
+  static List<List<String>> getData(QuerySnapshot<Object?> snapshot) {
+    return snapshot.docs.map((doc) {
+      return [
+        doc['firstName'].toString(),
+        doc['lastName'].toString(),
+        doc['email'].toString(),
+        doc['mobileNumber'].toString(),
+        doc['address'].toString(),
+      ];
+    }).toList();
+  }
+}
+
+class CustomSearchDelegate extends SearchDelegate<String> {
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        onPressed: () {
+          query = '';
+        },
+        icon: const Icon(Icons.clear),
+      )
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        close(context, query);
+      },
+      icon: const Icon(Icons.arrow_back),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    // Implementation for search results
+    return Container();
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    // Implementation for search suggestions
+    return Container();
+  }
+}
+
+void main() {
+  runApp(AllUsers());
+}
